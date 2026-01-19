@@ -64,15 +64,6 @@ func Parse(content []byte, baseURL string) (*PageData, error) {
 		case html.StartTagToken, html.SelfClosingTagToken:
 			token := tokenizer.Token()
 			if _, ok := skipTags[token.Data]; ok {
-				// We need to skip this entire tag block if it's a start tag,
-				// but tokenizer doesn't support skipping blocks easily without a full parse.
-				// However, the original code just skipped the token processing.
-				// The original code loop structure was: if skipTags[token.Data] continue.
-				// But that only skips the *start* tag. If it has content, it might process it?
-				// Actually the original code had `tt = tokenizer.Next(); continue`.
-				// This simply skips the *next* token immediately after the skipped tag.
-				// This might be buggy in original code (it swallows one token), but let's stick to simple logic or improve.
-				// Improvement: Just ignore the tag itself.
 				continue
 			}
 			if token.Data == "title" {
@@ -150,9 +141,8 @@ func isSameDomain(base, link string) bool {
 		return false
 	}
 
-	// Handle relative links
 	if !linkURL.IsAbs() {
-		return true // treat relative links as same domain
+		return true
 	}
 
 	host := strings.TrimPrefix(linkURL.Hostname(), "www.")

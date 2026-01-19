@@ -22,7 +22,7 @@ func NewPubSub[T any]() *PubSub[T] {
 }
 
 func (ps *PubSub[T]) Subscribe(topic string) <-chan T {
-	ch := make(chan T, 10) // buffered channel
+	ch := make(chan T, 10)
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	ps.subscribers[topic] = append(ps.subscribers[topic], ch)

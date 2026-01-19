@@ -47,38 +47,6 @@ func (c *Crawler) Start(ctx context.Context) {
 		go c.worker(ctx, &wg)
 	}
 
-	// Monitor for completion
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
-		idleCount := 0
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				if c.queue.IsEmpty() && atomic.LoadInt32(&c.activeWorkers) == 0 {
-					idleCount++
-					if idleCount > 3 {
-						return // We can cancel context here or just let main waiting logic handle it, but main needs to know.
-						// The main functions waits on ctx or signal.
-						// Actually, let's just let the Start method block until done?
-						// The original main had a complex wait.
-						// For this refactor, I'll make Start blocking?
-						// But Start spawns workers. Ideally Start blocks until crawl is finished.
-						// But I need to stop workers.
-						// If I return from Start, the main will exit.
-						// So I should wait here.
-					}
-				} else {
-					idleCount = 0
-				}
-			}
-		}
-	}()
-
-	// Better approach for blocking Start:
-	// Use a loop that checks status and exits when done.
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	idleCount := 0
@@ -92,11 +60,6 @@ func (c *Crawler) Start(ctx context.Context) {
 			if c.queue.IsEmpty() && atomic.LoadInt32(&c.activeWorkers) == 0 {
 				idleCount++
 				if idleCount > 5 {
-					// Done
-					// We need to signal workers to stop?
-					// Workers loop on queue. If queue empty, they sleep or spin?
-					// My worker implementation below sleeps.
-					// If done, we can just return.
 					return
 				}
 			} else {
@@ -192,8 +155,6 @@ func (c *Crawler) checkRobotstxt(uri string) (string, error) {
 	robotsURL := u.Scheme + "://" + u.Host + "/robots.txt"
 	resp, err := c.sendRequest(robotsURL)
 	if err != nil {
-		// If robots.txt fails, assume we can crawl? Or fail?
-		// Original code returned error.
 		return "", err
 	}
 	defer resp.Body.Close()
