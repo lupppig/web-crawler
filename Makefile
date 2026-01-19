@@ -19,7 +19,7 @@ clean:
 	rm -f $(BINARY_NAME)
 
 docker-up:
-	docker-compose up --build
+	docker compose up --build -d
 
 docker-down:
-	docker-compose down
+	docker compose down
