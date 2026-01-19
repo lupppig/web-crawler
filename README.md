@@ -1,106 +1,116 @@
 # 🕷️ Go Web Crawler
 
-This is a  web crawler I built using **Go**, an HTML tokenizer, and **MongoDB** for data storage. It uses a **Breadth-First Search (BFS)** strategy to crawl pages, extracts useful information, and stores it in a structured format.
+This is a concurrent web crawler built using **Go**, a custom HTML parser, and **MongoDB** for data storage. It utilizes a **worker pool** pattern to efficiently crawl pages, extracts useful information, and stores it in a structured format.
 
 ---
 
-### 🧭 Why I Chose BFS
+## 🧭 Design Decisions
 
-I chose **Breadth-First Search (BFS)** over **Depth-First Search (DFS)** for crawling because it better simulates how users typically explore websites:
+### Breadth-First Search (BFS)
+I chose **BFS** to prioritize discovering top-level pages before diving deeper, which better simulates typical user exploration and ensures broader coverage of the site structure.
 
-- **Layer-by-layer crawling:** BFS visits pages in order of discovery, ensuring I prioritize top-level pages before going deeper. This is useful when the goal is to quickly discover the most important or accessible pages.
-- **Controlled growth:** By expanding outward evenly from the seed page, BFS helps avoid deep traversal into a single branch of a site, which could happen with DFS (and cause the crawler to miss broader content).
+### Worker Pool
+Instead of spawning a goroutine for every URL (which can be uncontrolled), I implemented a **worker pool**. This allows limiting the number of concurrent connections, respecting system resources and the target server's limits.
 
-
-## 📌 What It Does
-
-* Starts crawling from a seed URL.
-* Uses BFS to explore and queue links.
-* Parses each page using Go’s HTML tokenizer.
-* Extracts information such as:
-
-  * Page titles
-  * Meta descriptions
-  * All anchor tag links (`<a href>`)
-* Saves the extracted data to MongoDB.
+### Custom HTML Parser
+The project uses `golang.org/x/net/html` for tokenization, but the parsing logic is custom-built to efficiently extract titles, body text, and links while skipping irrelevant tags (scripts, styles, etc.).
 
 ---
 
-## 🧠 How It Works
+## 📌 Features
 
-### 1. **Crawling with BFS**
-
-I implemented a BFS queue to make sure pages are visited layer by layer:
-
-* Each new URL goes into a queue.
-* Before enqueuing, I check if the URL has already been visited using a thread-safe map.
-* As I dequeue and process each page, I extract and queue new links found on it.
-
-### 2. **HTML Parsing**
-
-Instead of using heavy HTML parsers, I used Go’s `html.NewTokenizer()`:
-
-* It allows me to tokenize and scan the HTML stream efficiently.
-* I focus on tokens like `<title>`, `<meta name="description">`, and `<a href>`.
-* This low-level parsing gives me full control over what and how I extract data.
-
-### 3. **Storing Data in MongoDB**
-
-After parsing a page, I store the results in MongoDB in a structured format like this:
-
-```json
-{
-  "title": "Example Title",
-  "description": "This is an example description.",
-  "added_at": "2020-01-01:T00:00:00"
-}
-```
-
-This makes it easy for me to query or analyze the data later.
+*   **Concurrency**: Uses a worker pool for parallel processing.
+*   **Politeness**: Checks `robots.txt` before crawling.
+*   **Data Persistence**: Stores crawled metadata and content in MongoDB.
+*   **Metrics**: Tracks and logs crawl statistics (duration, pages/sec, success/failure rates) upon completion.
+*   **Dockerized**: Fully containerized with Docker and Docker Compose for easy setup.
 
 ---
 
-## ⚙️ Tech Stack
+## 🛠️ Project Structure
 
-* **Language**: Go
-* **HTML Parsing**: `golang.org/x/net/html`
-* **Database**: MongoDB
-* **Concurrency**: Channels, goroutines, and mutexes
+The project follows a standard Go project layout:
+
+*   `cmd/crawler`: Application entry point.
+*   `internal/crawler`: Core crawler logic and worker pool implementation.
+*   `internal/queue`: Thread-safe URL queue.
+*   `internal/storage`: MongoDB storage implementation.
+*   `internal/parser`: HTML parsing logic.
 
 ---
 
 ## 🚀 How to Run
 
-1. **Install dependencies:**
+### Prerequisites
+*   Docker & Docker Compose (recommended)
+*   **OR** Go 1.23+ and a running MongoDB instance
 
-   ```bash
-   go mod tidy
-   ```
+### Using Docker (Recommended)
 
-2. **Set up MongoDB connection** (either via a `.env` file or directly in your config).
+The easiest way to run the crawler is using the provided `Makefile` and Docker Compose:
 
-3. **Run the crawler:**
+1.  **Start the Crawler:**
+    ```bash
+    make docker-up
+    ```
+    This will build the image, start MongoDB, and begin crawling the seed URL.
 
-   ```bash
-   go run main.go
-   ```
+2.  **Stop the Crawler:**
+    ```bash
+    make docker-down
+    ```
+
+### Running Locally
+
+1.  **Install dependencies:**
+    ```bash
+    go mod tidy
+    ```
+
+2.  **Set up Environment:**
+    Copy the example environment file:
+    ```bash
+    cp .env.example .env
+    ```
+    Update `.env` with your MongoDB credentials if necessary.
+
+3.  **Run the application:**
+    ```bash
+    make run
+    # OR
+    go run cmd/crawler/main.go
+    ```
 
 ---
 
-## 📈 Features I Might Add Later
+## � Metrics
 
-* `robots.txt` support
-* Rate limiting to avoid spamming sites
-* Custom depth limit
-* Export results as CSV or JSON
+When the crawl finishes (or is interrupted), the crawler logs statistics to the console:
+
+```text
+--- Crawl Statistics ---
+Total Duration: 2m15s
+Total Pages Crawled: 342
+Successful Requests: 340
+Failed Requests: 2
+Average Time Per Page: 0.3947 seconds
+```
 
 ---
 
-## 🙋🏽‍♂️ Why I Built This
+## 🧪 Testing
 
-I built this project to sharpen my skills in:
+Run the test suite using:
 
-* Writing efficient and concurrent Go code
-* Parsing HTML without relying on large third-party libraries
-* Structuring and storing scraped data
-* Building scalable and real-world backend components
+```bash
+make test
+```
+
+---
+
+## 📝 Tech Stack
+
+*   **Language**: Go 1.23
+*   **Database**: MongoDB
+*   **Containerization**: Docker
+*   **Orchestration**: Docker Compose
