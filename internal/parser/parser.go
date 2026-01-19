@@ -95,7 +95,7 @@ func Parse(content []byte, baseURL string) (*PageData, error) {
 			if inBody && len(words) < 1000 {
 				text := strings.TrimSpace(tokenizer.Token().Data)
 				tokens := tokenize(text)
-				remaining := 1000 - len(tokens)
+				remaining := 1000 - len(words)
 				if len(tokens) > remaining {
 					words = append(words, tokens[:remaining]...)
 				} else {
