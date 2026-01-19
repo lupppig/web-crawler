@@ -51,6 +51,16 @@ func main() {
 	crawlerInstance.Start(ctx)
 
 	duration := time.Since(startTime)
-	fmt.Printf("Crawler finished in %s\n", duration)
-	fmt.Printf("Pages crawled: %d\n", crawlerInstance.Stats())
+	stats := crawlerInstance.Stats()
+
+	fmt.Printf("\n--- Crawl Statistics ---\n")
+	fmt.Printf("Total Duration: %s\n", duration)
+	fmt.Printf("Total Pages Crawled: %d\n", stats.TotalPages)
+	fmt.Printf("Successful Requests: %d\n", stats.SuccessCount)
+	fmt.Printf("Failed Requests: %d\n", stats.FailureCount)
+
+	if stats.TotalPages > 0 {
+		avgTime := duration.Seconds() / float64(stats.TotalPages)
+		fmt.Printf("Average Time Per Page: %.4f seconds\n", avgTime)
+	}
 }

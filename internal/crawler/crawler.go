@@ -17,6 +17,12 @@ import (
 	"github.com/temoto/robotstxt"
 )
 
+type Stats struct {
+	TotalPages   int32
+	SuccessCount int32
+	FailureCount int32
+}
+
 type Crawler struct {
 	seed          string
 	queue         *queue.Queue
@@ -24,6 +30,8 @@ type Crawler struct {
 	visited       sync.Map
 	workers       int
 	pageCount     int32
+	successCount  int32
+	failureCount  int32
 	activeWorkers int32
 }
 
@@ -92,24 +100,31 @@ func (c *Crawler) worker(ctx context.Context, wg *sync.WaitGroup) {
 
 func (c *Crawler) processURL(ctx context.Context, urlStr string) {
 	if checked, err := c.checkRobotstxt(urlStr); err != nil || checked == "" {
-		fmt.Printf("Skipping %s: %v\n", urlStr, err)
+		atomic.AddInt32(&c.failureCount, 1)
 		return
 	}
 
 	resp, err := c.sendRequest(urlStr)
 	if err != nil {
-		fmt.Printf("Error fetching %s: %v\n", urlStr, err)
+		atomic.AddInt32(&c.failureCount, 1)
 		return
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		atomic.AddInt32(&c.failureCount, 1)
+		return
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
+		atomic.AddInt32(&c.failureCount, 1)
 		return
 	}
 
 	pageData, err := parser.Parse(bodyBytes, urlStr)
 	if err != nil {
+		atomic.AddInt32(&c.failureCount, 1)
 		return
 	}
 
@@ -121,10 +136,11 @@ func (c *Crawler) processURL(ctx context.Context, urlStr string) {
 	}
 
 	if err := c.storage.AddContent(ctx, content); err != nil {
-		fmt.Printf("Error saving %s: %v\n", urlStr, err)
+		atomic.AddInt32(&c.failureCount, 1)
+	} else {
+		atomic.AddInt32(&c.successCount, 1)
+		atomic.AddInt32(&c.pageCount, 1)
 	}
-
-	atomic.AddInt32(&c.pageCount, 1)
 
 	for _, link := range pageData.Links {
 		if c.shouldVisit(link) {
@@ -184,6 +200,10 @@ func (c *Crawler) markVisited(urlStr string) {
 	c.visited.Store(normalized, true)
 }
 
-func (c *Crawler) Stats() int32 {
-	return atomic.LoadInt32(&c.pageCount)
+func (c *Crawler) Stats() Stats {
+	return Stats{
+		TotalPages:   atomic.LoadInt32(&c.pageCount),
+		SuccessCount: atomic.LoadInt32(&c.successCount),
+		FailureCount: atomic.LoadInt32(&c.failureCount),
+	}
 }
