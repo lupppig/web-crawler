@@ -1,10 +1,10 @@
-# 🕷️ Go Web Crawler
+# Go Web Crawler
 
 This is a concurrent web crawler built using **Go**, a custom HTML parser, and **MongoDB** for data storage. It utilizes a **worker pool** pattern to efficiently crawl pages, extracts useful information, and stores it in a structured format.
 
 ---
 
-## 🧭 Design Decisions
+## Design Decisions
 
 ### Breadth-First Search (BFS)
 I chose **BFS** to prioritize discovering top-level pages before diving deeper, which better simulates typical user exploration and ensures broader coverage of the site structure.
@@ -17,7 +17,7 @@ The project uses `golang.org/x/net/html` for tokenization, but the parsing logic
 
 ---
 
-## 📌 Features
+## Features
 
 *   **Concurrency**: Uses a worker pool for parallel processing.
 *   **Politeness**: Checks `robots.txt` before crawling.
@@ -27,7 +27,7 @@ The project uses `golang.org/x/net/html` for tokenization, but the parsing logic
 
 ---
 
-## 🛠️ Project Structure
+## Project Structure
 
 The project follows a standard Go project layout:
 
@@ -39,7 +39,7 @@ The project follows a standard Go project layout:
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
 ### Prerequisites
 *   Docker & Docker Compose (recommended)
@@ -83,22 +83,24 @@ The easiest way to run the crawler is using the provided `Makefile` and Docker C
 
 ---
 
-## � Metrics
+## Metrics
 
 When the crawl finishes (or is interrupted), the crawler logs statistics to the console:
 
 ```text
+database connected successfully
+Starting crawler...
+
 --- Crawl Statistics ---
-Total Duration: 2m15s
-Total Pages Crawled: 342
-Successful Requests: 340
-Failed Requests: 2
-Average Time Per Page: 0.3947 seconds
+Total Duration: 4.500428338s
+Total Pages Crawled: 0
+Successful Requests: 0
+Failed Requests: 1
 ```
 
 ---
 
-## 🧪 Testing
+## Testing
 
 Run the test suite using:
 
@@ -108,7 +110,7 @@ make test
 
 ---
 
-## 📝 Tech Stack
+## Tech Stack
 
 *   **Language**: Go 1.23
 *   **Database**: MongoDB
