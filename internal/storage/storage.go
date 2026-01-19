@@ -100,7 +100,7 @@ func (s *Storage) AddContent(ctx context.Context, content CrawlContent) error {
 	if err != nil {
 		return fmt.Errorf("failed to insert data in mongo: %w", err)
 	}
-	fmt.Println("Data added to database")
+	fmt.Printf("Successfully saved to DB: %s (%s)\n", content.Path, content.Title)
 	return nil
 }
 
